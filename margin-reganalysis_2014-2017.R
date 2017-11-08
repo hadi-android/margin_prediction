@@ -1,4 +1,4 @@
-setwd("~/Predictive Analytics/Top-line revenue/margin/regression/2014-2017")
+setwd("~/Predictive Analytics/Top-line revenue/margin/regression/margin_prediction")
 library(xlsx)
 library(caret)
 regdata = read.xlsx("margin-regdata.xlsx", sheetIndex = 1)
@@ -13,7 +13,7 @@ margindata = margindata[,-which(names(margindata)=="Margin_Sum")]
 margindata = margindata[,-which(names(margindata)=="WorkAmtTotal")]
 margindata = margindata[,-which(names(margindata)=="Year")]
 margindata = margindata[,-which(names(margindata)=="Month")]
-margindata = margindata[,-which(names(margindata)=="Professional.Growth...Mgm")]
+# margindata = margindata[,-which(names(margindata)=="Professional.Growth...Mgm")]
 
 # names(margindata)
 
@@ -84,8 +84,23 @@ MAE2
 
 #####################################################
 ### cross validation
-lmfit = lm(MarginPercent~., data=margindata)
-summary(lmfit)
+browser()
+lmfit2 = lm(MarginPercent~., data=margindata2)
+summary(lmfit2)
+margindata2 = margindata2[,-which(names(margindata2)=="Professional.Growth...Mgm")]
+lmfit3 = lm(MarginPercent~., data=margindata2)
+summary(lmfit3)
+lmfit_summary = summary(lmfit3)
+coefs = data.frame(lmfit_summary$coefficients)
+coefs$name = row.names(coefs)
+coefs = coefs[order(coefs$Pr...t..),]
+write.xlsx(lmfit_summary$coefficients, file="coefs_margin_noPGM.xlsx")
+
+cvfit = cv.lm(data=margindata, lmfit3, m=3) # 3 fold cross-validation
+cvfit
+MAE = mean(abs(cvfit$cvpred-cvfit$MarginPercent))
+MAE
+
 set.seed(1234567)
 k=3
 
