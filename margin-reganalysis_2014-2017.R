@@ -1,7 +1,7 @@
 setwd("~/Predictive Analytics/Top-line revenue/margin/regression/margin_prediction")
 library(xlsx)
 library(caret)
-regdata = read.xlsx("margin-regdata.xlsx", sheetIndex = 1)
+regdata = read.xlsx("margin_regdata_major_departments.xlsx", sheetIndex = 1)
 # NAcount = sapply(regdata, function(x) sum(is.na(x)))
 # NAcount
 regdata = regdata[complete.cases(regdata$Year),]
