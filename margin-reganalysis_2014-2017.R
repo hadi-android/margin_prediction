@@ -1,7 +1,7 @@
 setwd("~/Predictive Analytics/Top-line revenue/margin/regression/margin_prediction")
 library(xlsx)
 library(caret)
-regdata = read.xlsx("margin_regdata_major_departments.xlsx", sheetIndex = 1)
+regdata = read.xlsx("margin-regdata_fin_it.xlsx", sheetIndex = 1)
 # NAcount = sapply(regdata, function(x) sum(is.na(x)))
 # NAcount
 regdata = regdata[complete.cases(regdata$Year),]
@@ -15,8 +15,20 @@ margindata = margindata[,-which(names(margindata)=="Year")]
 margindata = margindata[,-which(names(margindata)=="Month")]
 # margindata = margindata[,-which(names(margindata)=="Professional.Growth...Mgm")]
 
-# names(margindata)
 
+M = dim(margindata)[2]-1
+r2 = numeric(M)
+r2a = numeric(M)
+coef = numeric(M)
+for (i in 1:M){
+  lm1 = lm(margindata$MarginPercent~margindata[,i], data = margindata)
+  lm1 = summary(lm1)
+  r2[i] = lm1$r.squared
+  r2a[i] = lm1$adj.r.squared
+  coef[i] = lm1$coefficients[2,1]
+}
+
+# names(margindata)
 lmfit = lm(MarginPercent~., data=margindata)
 summary(lmfit)
 lmfit_summary = summary(lmfit)
@@ -28,6 +40,8 @@ pred = lmfit$fitted.values
 MAE = mean(abs(actual-pred))
 MAE
 
+output = cbind(regdata$Year,regdata$Month, margindata,pred)
+write.xlsx(output, file="regression-margin-fin-it-opt.xlsx")
 # margindata$pred = pred
 # lmfit_summary = summary(lmfit)
 # write.xlsx(lmfit_summary$coefficients,file="coeffs_margin_allpredictors.xlsx")
@@ -46,7 +60,7 @@ coefs = data.frame(lmfit_summary$coefficients)
 coefs$name = row.names(coefs)
 coefs = coefs[order(coefs$Pr...t..),]
 print(coefs)
-# write.xlsx(lmfit_summary$coefficients,file="coeffs_margin_noPGM.xlsx")
+# write.xlsx(lmfit_summary$coefficients,file="coeffs_margin_fin_it_opt.xlsx")
 # summary(lmfit2)
 # lmpredictors = predictors(lmfit2)
 # print(lmpredictors)
@@ -104,34 +118,29 @@ MAE
 set.seed(1234567)
 k=3
 
-folds = createFolds(margindata$MarginPercent, k, returnTrain = T)
-# folds[[1]]
-coefs = list()
-MAE = numeric(k)
-for (i in 1:k){
-  inTrain = folds[[i]]
-  data_tr = margindata[inTrain,]
-  data_te = margindata[-inTrain, -dim(margindata)[2]]
-  # data_te = margindata2[-inTrain,]
-  
-  lmfit_cv = lm(MarginPercent ~., data = data_tr)
-  coefs[[i]]=coef(lmfit_cv)
-  actual = data_tr$MarginPercent
-  pred = predict(lmfit_cv, newdata = data_te)
-  MAE[i] = mean(abs(actual-pred))
-}
+data_tr = margindata[c(1:40),]
+data_te = margindata[c(41:45),]
+lmtrain = lm(MarginPercent~., data=data_tr)
+summary(lmtrain)
+
+actual = data_tr$MarginPercent
+pred_tr = predict(lmtrain, data_tr)
+print(mean(abs(pred_tr-actual)))
+
+pred_te = predict(lmtrain, newdata=data_te)
+actual = data_te$MarginPercent
+MAE = mean(abs(pred_te-actual))
 print(MAE)
 
-print(mean(MAE))
-data_tr = margindata[inTrain,]
-data_te = margindata[-inTrain,]
+lmfit_summary = summary(lmtrain)
+write.xlsx(lmfit_summary$coefficients, file="coefs_margin_fin_it_split.xlsx")
+pred = pred_tr
+output_tr = cbind(data_tr,pred)
+output_tr$partition = "train"
 
-lmfit = train(MarginPercent~., data = data_tr, method="lm")
-summary(lmfit)
-coef(lmfit)
-# 
-# actual = data_te$MarginPercent
-# data_te = data_te[,-9]
-# pred = predict(lmfit, newdata = data_te)
-# MAE = mean(abs(actual-pred))
-# print(MAE)
+pred = pred_te
+output_te = cbind(data_te,pred)
+output_te$partition = "test"
+output = rbind(output_tr,output_te)
+write.xlsx(output, file="regression-margin-fin-it_split.xlsx")
+
